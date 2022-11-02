@@ -1,0 +1,1 @@
+jupyter-notebook --ip='*' --NotebookApp.token='' --NotebookApp.password='' --no-browser --port=8888 --NotebookApp.allow_origin=* --NotebookApp.allow_remote_access=1
