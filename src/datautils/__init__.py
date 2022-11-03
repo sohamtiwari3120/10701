@@ -1,9 +1,11 @@
 import os
 import json
+import torch
 import pandas as pd
 from typing import *
 from tqdm import tqdm
 from datetime import datetime as dt
+from torch.utils.data import Dataset
 
 def read_patent_jsonl(path: str, use_tqdm: bool=False) -> List[dict]:
     # list of dicts data to be loaded
@@ -35,3 +37,19 @@ def read_patent_splits(path, use_tqdm: bool=False, train_size: float=0.7,
     test = time_sorted[N_train + N_val :].reset_index(drop=True)
 
     return train, val, test
+
+# 
+class CategFeatures(Dataset):
+    def __init__(self, df: pd.DataFrame):
+        self.data = df.reset_index(drop=True)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, i: int):
+        feats = []
+        for col in self.data.columns:
+            if col != "decision":
+                feats.append(self.data[col][i])
+
+        return [torch.as_tensor(feats), torch.as_tensor(self.data["decision"][i])]
