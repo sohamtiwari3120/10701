@@ -1,0 +1,1 @@
+{"padding": "max_length", "max_length": 200, "truncation": true, "return_tensors": "pt", "batch_size": 64, "num_epochs": 10, "lr": 1e-05, "bert_path": "bert-base-cased", "sections": ["claims"]}

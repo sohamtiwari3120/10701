@@ -1,0 +1,1 @@
+{"input_size": 10, "hidden_sizes": [100, 200, 100, 200, 100], "num_classes": 2, "batch_size": 1024, "num_epochs": 10, "lr": 0.001, "feats": ["inventor_0", "inventor_1", "inventor_2", "inventor_3", "inventor_4", "inventor_5", "inventor_6", "inventor_7", "inventor_8", "inventor_9"]}
