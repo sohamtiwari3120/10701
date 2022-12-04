@@ -1,4 +1,4 @@
-import os
+import pickle
 import json
 import pandas as pd
 from typing import *
@@ -35,3 +35,8 @@ def read_patent_splits(path, use_tqdm: bool=False, train_size: float=0.7,
     test = time_sorted[N_train + N_val :].reset_index(drop=True)
 
     return train, val, test
+
+def load_pickle(filepath):
+    with open(filepath, 'rb') as f:
+        data = pickle.load(f)
+    return data
