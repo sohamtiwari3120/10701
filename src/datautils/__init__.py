@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import torch
 import pandas as pd
@@ -66,6 +67,64 @@ class TextFeatures(Dataset):
         
         return feats
 
+def parse_claims(text: str):
+    words = text.split()
+    regex = re.compile("^[0-9]+-[0-9]+\.$")
+    regex2 = re.compile("^[0-9]+-[0-9]+\)$")
+    regex3 = re.compile("^[0-9]+\.-[0-9]+\.$")
+    regex4 = re.compile("^[0-9]+-[0-9]+\.\)$")
+    claims, ctr, curr_claim = [], 1, []
+    for word in words:
+        word = word.strip()
+        if word == f"{ctr}." or word == f"{ctr})" or word == f"{ctr}.)": # print("found point")
+            if len(curr_claim) != 0: 
+                claims.append(" ".join(curr_claim))
+            curr_claim = []
+            ctr += 1
+        elif word.startswith(f"{ctr}-") and regex.match(word): # print("found range")
+            if len(curr_claim) != 0: 
+                claims.append(" ".join(curr_claim))
+            curr_claim = []
+            try: ctr = int(word.split("-")[-1].split(".")[0])+1
+            except ValueError: print(word)
+        elif word.startswith(f"{ctr}-") and regex4.match(word): # print("found range")
+            if len(curr_claim) != 0: 
+                claims.append(" ".join(curr_claim))
+            curr_claim = []
+            try: ctr = int(word.split("-")[-1].split(".)")[0])+1
+            except ValueError: print(word)
+        elif word.startswith(f"{ctr}-") and regex2.match(word): # print("found range")
+            if len(curr_claim) != 0: 
+                claims.append(" ".join(curr_claim))
+            curr_claim = []
+            try: ctr = int(word.split("-")[-1].split(")")[0])+1
+            except ValueError: print(word)
+        elif word.startswith(f"{ctr}.-") and regex3.match(word): # print("found range2")
+            if len(curr_claim) != 0: 
+                claims.append(" ".join(curr_claim))
+            curr_claim = []
+            try: ctr = int(word.split("-")[-1].split(".")[0])+1
+            except ValueError: print(word)
+        else: curr_claim.append(word)
+    if len(curr_claim) > 0:
+        claims.append(" ".join(curr_claim))
+
+    return claims
+
+class ClaimsFeatures(Dataset):
+    """Dataset to represent the list of claims."""
+    def __init__(self, df: pd.DataFrame, feats: List[str]):
+        self.data = df.reset_index(drop=True)
+        print(feats)
+        print(self.data)
+        self.feats = feats
+        if "inventor_list" in feats:
+            i = feats.index("inventor_list")
+            feats.pop(i)
+            for j in range(10): feats.append(f"inventor_{j}")
+        self.label_map = {"REJECTED": 0, "ACCEPTED": 1}
+        self.data["decision"] = self.data["decision"].apply(lambda x: self.label_map[x])
+
 class CategFeatures(Dataset):
     """Dataset class to handle no-text or feature only data
     with categorical features like inventor_list, examiner_name, topic_id etc."""
@@ -90,3 +149,10 @@ class CategFeatures(Dataset):
             feats.append(float(self.data[col][i]))
 
         return [torch.as_tensor(feats), torch.as_tensor(self.data["decision"][i])]
+
+# main function.
+if __name__ == "__main__":
+    data = read_patent_splits("../data/patent_acceptance_pred_subs=0.2.jsonl")
+    all_claims = []
+    for i in tqdm(range(len(data[0]))):
+        all_claims.append(parse_claims(data[0]["claims"][i]))
