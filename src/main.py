@@ -6,6 +6,9 @@ from sklearn.metrics import classification_report
 from transformers import AutoTokenizer, DataCollatorWithPadding, AutoModelForSequenceClassification, TrainingArguments, Trainer, EarlyStoppingCallback
 import numpy as np
 import wandb
+import os
+import glob
+import tqdm
 
 from datasets import Dataset, load_metric
 
@@ -47,7 +50,9 @@ def intersection(lst1, lst2):
     return lst3
 
 def preprocess_function(examples, tokenizer):
+    examples['test'] = 'test'
     return tokenizer(examples["text"], truncation=True)
+
 
 def main(args):
     run_name = args.run_name
@@ -62,8 +67,9 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(hp.model_name)
     preprocess_function_partial = partial(preprocess_function, tokenizer=tokenizer)
 
-    train_data_hf = load_into_Dataset(train_data, topic_ids[0]).train_test_split(test_size=0.25, shuffle=False)
+    train_data_hf = load_into_Dataset(train_data, topic_ids[args.topic_id]).train_test_split(test_size=0.25, shuffle=False)
     # val_data_hf = load_into_Dataset(val_data, topic_ids[0])
+    breakpoint()
     val_data_hf = train_data_hf['test']
     train_data_hf = train_data_hf['train']
     
@@ -112,5 +118,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-rn', '--run_name', type=str, required=True)
     parser.add_argument('-st', '--skip_training', action='store_true')
+    parser.add_argument('-ti', '--topic_id', type=int, default=1)
     args = parser.parse_args()
     main(args)

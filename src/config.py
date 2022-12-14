@@ -18,6 +18,10 @@ class hparams:
         self.train_pkl = '/home/sohamdit/10701-files/10701/src/train_data_topic_groups.pkl'
         self.val_pkl = '/home/sohamdit/10701-files/10701/src/val_data_topic_groups.pkl'
         self.test_pkl = '/home/sohamdit/10701-files/10701/src/test_data_topic_groups.pkl'
+        
+        self.train_claims_json = "/home/arnaik/ml_project/data/train_claims.json"
+        self.test_claims_json = "/home/arnaik/ml_project/data/test_claims.json"
+        self.val_claims_json = "/home/arnaik/ml_project/data/val_claims.json"
         # train args
         # finetune
         self.evaluation_strategy = "epoch"
@@ -33,4 +37,9 @@ class hparams:
         self.early_stopping_patience = 10
         self.early_stopping_threshold = 0.005
         self.per_device_train_batch_size = 8
-        self.output_dir = "/home/sohamdit/10701-files/10701/src/results"
+        # self.output_dir = "/home/sohamdit/10701-files/10701/src/results"
+        # paths to parsed claims jsons
+        self.validation_claims_path = "/home/arnaik/ml_project/data/val_claims.json"
+        self.train_claims_path = "/home/arnaik/ml_project/data/train_claims.json"
+        self.test_claims_path = "/home/arnaik/ml_project/data/test_claims.json"
+        self.special_token_ids = [0, 100, 101, 102, 103]

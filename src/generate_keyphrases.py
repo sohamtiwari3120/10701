@@ -3,7 +3,6 @@ import sys
 from tqdm import tqdm
 import json
 import time
-
 from datautils import read_patent_jsonl
 from config import hparams
 hp = hparams()
@@ -13,7 +12,6 @@ import launch  # noqa
 embedding_distributor = launch.load_local_embedding_distributor(
     hp.config_ini_path)
 pos_tagger = launch.load_local_corenlp_pos_tagger(hp.config_ini_path)
-
 
 def extract_keyphrase(raw_text: str, num_keyphrase: int = hp.num_keyphrases_to_extract, fail_tries: int = hp.fail_tries):
     while True:
@@ -60,7 +58,6 @@ def main(args):
     generate_keyphrases(
         args.output_dir, start_index=args.start_index, num_lines=args.num_lines)
     # read_keyphrases_file(args.output_dir)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
