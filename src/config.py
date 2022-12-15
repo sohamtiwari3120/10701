@@ -3,7 +3,8 @@ class hparams:
         self.patent_jsonl_path = "/home/sohamdit/10701-files/10701/data/patent_acceptance_pred_subs=0.2.jsonl"
         # self.patent_jsonl_path = "/home/arnaik/ml_project/data/patent_acceptance_pred_subs=0.2_no_desc.jsonl"
         self.output_dir = "/home/sohamdit/10701-files/10701/data/keyphrases2/"
-        self.tokenized_attn_mask_output_dir = "/home/sohamdit/10701-files/10701/src/tokenized_attention_masks/"
+        self.train_tokenized_attn_mask_output_dir = "/home/sohamdit/10701-files/10701/src/train_tokenized_attention_masks/"
+        self.eval_tokenized_attn_mask_output_dir = "/home/sohamdit/10701-files/10701/src/eval_tokenized_attention_masks/"
         self.launch_path = "/home/sohamdit/10701-files/ai-research-keyphrase-extraction"
         self.config_ini_path = "/home/sohamdit/10701-files/ai-research-keyphrase-extraction/config.ini"
         # keyphrase extraction
@@ -20,7 +21,7 @@ class hparams:
         self.train_pkl = '/home/sohamdit/10701-files/10701/src/train_data_topic_groups.pkl'
         self.val_pkl = '/home/sohamdit/10701-files/10701/src/val_data_topic_groups.pkl'
         self.test_pkl = '/home/sohamdit/10701-files/10701/src/test_data_topic_groups.pkl'
-        
+
         self.train_claims_json = "/home/arnaik/ml_project/data/train_claims.json"
         self.test_claims_json = "/home/arnaik/ml_project/data/test_claims.json"
         self.val_claims_json = "/home/arnaik/ml_project/data/val_claims.json"

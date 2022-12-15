@@ -8,7 +8,7 @@ import numpy as np
 import wandb
 import os
 import glob
-import tqdm
+import torch
 
 from datasets import Dataset, load_metric
 
@@ -52,6 +52,27 @@ def intersection(lst1, lst2):
 def preprocess_function(examples, tokenizer):
     examples['test'] = 'test'
     return tokenizer(examples["text"], truncation=True)
+
+class ClaimsTokenizedDataset(Dataset):
+    """Tokenized claims (from patents) dataset with precomputed attention masks"""
+
+    def __init__(self, tokenized_dir):
+        """
+        Args:
+            tokenized_dir (string): Path to the directory containing precomputed tokenized patents along with corresponding attention masks
+        """
+        self.tokenized_dir = tokenized_dir
+        self.pt_files = glob.glob(os.path.join(self.tokenized_dir, "*.pt"))
+
+    def __len__(self):
+        return len(self.pt_files) # number of patent applications
+
+    def __getitem__(self, idx):
+        # idx corresponds to patent id
+        data = torch.load(self.pt_files[idx])
+        claims_tokenized_list = data['claims_tokenized_list']
+        attention_masks_list = data['attention_masks_list']
+        return sample
 
 
 def main(args):
