@@ -8,8 +8,9 @@ import numpy as np
 import wandb
 import os
 import glob
+from datautils import read_patent_jsonl
 import torch
-
+from tqdm import tqdm
 from datasets import Dataset, load_metric
 
 hp = hparams()
@@ -53,16 +54,25 @@ def preprocess_function(examples, tokenizer):
     examples['test'] = 'test'
     return tokenizer(examples["text"], truncation=True)
 
+def get_patent_id_labels_dict(file_path=hp.patent_jsonl_path):
+    data = read_patent_jsonl(file_path)
+    patent_id_labels_dict = {obj['id']: obj['decision'] for obj in tqdm(data)}
+    return patent_id_labels_dict
+
+
 class ClaimsTokenizedDataset(Dataset):
     """Tokenized claims (from patents) dataset with precomputed attention masks"""
 
-    def __init__(self, tokenized_dir):
+    def __init__(self, tokenized_dir, patent_id_labels_dict, max_batch_size=hp.max_batch_size):
         """
         Args:
             tokenized_dir (string): Path to the directory containing precomputed tokenized patents along with corresponding attention masks
         """
         self.tokenized_dir = tokenized_dir
         self.pt_files = glob.glob(os.path.join(self.tokenized_dir, "*.pt"))
+        self.patent_id_labels_dict = patent_id_labels_dict
+        self.max_seq_len = 512
+        self.max_batch_size = max_batch_size
 
     def __len__(self):
         return len(self.pt_files) # number of patent applications
@@ -70,9 +80,33 @@ class ClaimsTokenizedDataset(Dataset):
     def __getitem__(self, idx):
         # idx corresponds to patent id
         data = torch.load(self.pt_files[idx])
+        id = data['id']
+        label = 0 if self.patent_id_labels_dict[id] == 'REJECTED' else 1
+        labels_list = []
+        ids_list = []
         claims_tokenized_list = data['claims_tokenized_list']
         attention_masks_list = data['attention_masks_list']
-        return sample
+        num_allowed_claims = min(len(claims_tokenized_list), self.max_batch_size)
+        pooling_mask_batched_tensor = torch.zeros(num_allowed_claims, self.max_seq_len)
+        input_ids_list = []
+        token_type_ids_list = []
+        attention_mask_list = []
+        for i in range(num_allowed_claims):
+            padding_list = [0] * (self.max_seq_len - len(claims_tokenized_list[i]['attention_mask']))
+            input_ids_list.append(claims_tokenized_list[i]['input_ids']+padding_list)
+            token_type_ids_list.append(claims_tokenized_list[i]['token_type_ids']+padding_list)
+            attention_mask_list.append(claims_tokenized_list[i]['attention_mask']+padding_list)
+            ids_list.append(id)
+            labels_list.append(label)
+            pooling_mask_batched_tensor[i][:len(attention_masks_list[i])] = torch.tensor(attention_masks_list[i])
+        return {
+            "id": ids_list,
+            'input_ids': torch.tensor(input_ids_list), 
+            'token_type_ids': torch.tensor(token_type_ids_list), 
+            'attention_mask': torch.tensor(attention_mask_list),
+            'pooling_mask': pooling_mask_batched_tensor,
+            'labels': torch.tensor(labels_list)
+        }
 
 
 def main(args):
@@ -136,9 +170,11 @@ def main(args):
     wandb.finish()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-rn', '--run_name', type=str, required=True)
-    parser.add_argument('-st', '--skip_training', action='store_true')
-    parser.add_argument('-ti', '--topic_id', type=int, default=1)
-    args = parser.parse_args()
-    main(args)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('-rn', '--run_name', type=str, required=True)
+    # parser.add_argument('-st', '--skip_training', action='store_true')
+    # parser.add_argument('-ti', '--topic_id', type=int, default=1)
+    # args = parser.parse_args()
+    # main(args)
+    patent_id_labels_dict = get_patent_id_labels_dict()
+    ds = ClaimsTokenizedDataset(hp.train_tokenized_attn_mask_output_dir, patent_id_labels_dict)

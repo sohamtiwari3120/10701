@@ -40,6 +40,7 @@ class hparams:
         self.early_stopping_patience = 10
         self.early_stopping_threshold = 0.005
         self.per_device_train_batch_size = 8
+        self.max_batch_size=64
         # self.output_dir = "/home/sohamdit/10701-files/10701/src/results"
         # paths to parsed claims jsons
         self.validation_claims_path = "/home/arnaik/ml_project/data/val_claims.json"
