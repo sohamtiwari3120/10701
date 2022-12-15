@@ -76,7 +76,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-of', '--output_dir',
+    parser.add_argument('-od', '--output_dir',
                         type=str, default=hp.output_dir)
     parser.add_argument('-si', '--start_index', type=int, default=0)
     parser.add_argument('-nl', '--num_lines', type=int, default=-1)
