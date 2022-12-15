@@ -26,16 +26,31 @@ def extract_keyphrase(raw_text: str, num_keyphrase: int = hp.num_keyphrases_to_e
             time.sleep(0.5)
 
 
-def generate_and_save_keyphrases(data, output_dir, start_index):
+def generate_and_save_keyphrases(data, output_dir, start_index, fail_limit = 3):
     i = start_index
     for line in tqdm(data):
         output_data = {}
         id = line['id']
         output_data['id'] = id
+        skip_to_next = False
         for key in hp.jsonl_keys_for_generating_kp:
-            output_data[key] = extract_keyphrase(line[key])
-        with open(output_dir+f"/{i}_{id}.jsonl", "w", encoding="utf-8") as f:
-            f.write(json.dumps(output_data)+"\n")
+            fail_count = 0
+            loop = True
+            while loop:
+                try:
+                    output_data[key] = extract_keyphrase(line[key])
+                    loop = False
+                except:
+                    fail_count += 1
+                    if fail_count == fail_limit:
+                        loop = False
+            if fail_count == fail_limit:
+                skip_to_next = True
+                print(f'[ERROR] skipping {i}')
+                break
+        if not skip_to_next:
+            with open(output_dir+f"/{i}_{id}.jsonl", "w", encoding="utf-8") as f:
+                f.write(json.dumps(output_data)+"\n")
         i += 1
 
 
@@ -47,7 +62,7 @@ def read_keyphrases_file(file_path: str):
 def generate_keyphrases(output_dir, start_index: int = 0, num_lines: int = -1):
     data = read_patent_jsonl(hp.patent_jsonl_path)
     if num_lines == -1:
-        generate_and_save_keyphrases(data, output_dir, start_index)
+        generate_and_save_keyphrases(data[start_index:], output_dir, start_index)
     else:
         end_index = min(start_index+num_lines, len(data))
         generate_and_save_keyphrases(

@@ -129,6 +129,8 @@ dmypy.json
 .pyre/
 
 data/keyphrases/
+data/keyphrases2/
+data/keyphrases3/
 src/plots/*
 src/results/*
 wandb/

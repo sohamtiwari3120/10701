@@ -30,12 +30,15 @@ def filter_out_special_tokens(id):
 def main(data_path = hp.train_claims_json):
     tokenizer = AutoTokenizer.from_pretrained(hp.model_name)
     patent_id_keyphrases_path_dict = generate_keyphrases_paths_dict()
+    # breakpoint()
     # data_list = read_patent_jsonl(hp.patent_jsonl_path)
     data = json.load(open(data_path))
     data_ids = list(data.keys())
     final_data = {}
+    breakpoint()
     for i in tqdm(range(10)):
         # for each patent application
+        breakpoint()
         id = data_ids[i]
         claims_text_list = data[id]
         if id not in patent_id_keyphrases_path_dict:
