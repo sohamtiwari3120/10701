@@ -1,0 +1,1 @@
+{"max_length": 150, "truncation": true, "return_tensors": "pt", "padding": "max_length", "batch_size": 32, "num_epochs": 10, "lr": 1e-05, "bert_path": "bert-base-uncased"}

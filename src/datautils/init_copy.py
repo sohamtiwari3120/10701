@@ -1,4 +1,3 @@
-import pickle
 import os
 import re
 import json
@@ -8,8 +7,6 @@ from typing import *
 from tqdm import tqdm
 from datetime import datetime as dt
 from torch.utils.data import Dataset
-from glob import glob
-import numpy as np
 
 def read_patent_jsonl(path: str, use_tqdm: bool=False) -> List[dict]:
     # list of dicts data to be loaded
@@ -44,11 +41,6 @@ def read_patent_splits(path, use_tqdm: bool=False, train_size: float=0.7,
 
     return train, val, test
 
-def load_pickle(filepath):
-    with open(filepath, 'rb') as f:
-        data = pickle.load(f)
-    return data
-    
 class TextFeatures(Dataset):
     """Dataset class to handle text only inputs. We try using varioius parts of the patent like the 
     claim, title, summary, abstract, background"""
@@ -119,19 +111,66 @@ def parse_claims(text: str):
 
     return claims
 
+# class ClaimsFeatures(Dataset):
+#     """Dataset to represent the list of claims."""
+#     def __init__(self, df: pd.DataFrame, feats: List[str]):
+#         self.data = df.reset_index(drop=True)
+#         print(feats)
+#         print(self.data)
+#         self.feats = feats
+#         if "inventor_list" in feats:
+#             i = feats.index("inventor_list")
+#             feats.pop(i)
+#             for j in range(10): feats.append(f"inventor_{j}")
+#         self.label_map = {"REJECTED": 0, "ACCEPTED": 1}
+#         self.data["decision"] = self.data["decision"].apply(lambda x: self.label_map[x])
+def load_keyphrases(folder: str) -> Dict[str, Tuple[str, float]]:
+    keyphrases: dict = {}
+    for file in tqdm(os.listdir(folder)):
+        id = os.path.splitext(file.split("_")[-1])[0]
+        path = os.path.join(folder, file)
+        data = json.load(open(path))
+        pharses = data["claims"][0]
+        scores = data["claims"][1]
+        list_of_phrases = []
+        for word, score in zip(pharses, scores):
+            list_of_phrases.append((word, score))
+        keyphrases[id] = list_of_phrases
+
+    return keyphrases
+
+def add_keyphrase_loc_n_counts(claims, keyphrases: List[Tuple[str, float]],
+                               tokenizer=None, filter_counts: int=0, 
+                               filter_list: list=['claim','claims']) -> List[Tuple[str, float, int]]:
+    """What this does:
+    1. tokenize claims and keyphrases.
+    2. add phrase count (no. of ocurrences) information to keyphrases.
+    2. add start index information about keyphrases tokens.
+    3. add end index information about keyphrases tokens.
+    4. remove words with count less than `fitler_counts`
+    5. remove words present in `filter_list`"""
+    import re
+    keyp_with_counts = []
+    assert tokenizer is not None, "please pass a tokenizer"
+    for word, score in keyphrases:
+        # remove words in `filter_list`.
+        if word in filter_list: continue
+        phrase_tokens = tokenizer.tokenize(word)
+        tokenizer.tokenize(claim)
+        count = 0
+        for claim in claims:
+            matches = list(re.finditer(word, claim.lower()))
+            if matches: count += len(matches)
+        # remove words less frequent than `filter_counts`.
+        if count > filter_counts:
+            keyp_with_counts.append((word, score, count))
+
+    return keyp_with_counts
+
 class ClaimsFeatures(Dataset):
-    """Dataset to represent the list of claims."""
-    def __init__(self, df: pd.DataFrame, feats: List[str]):
-        self.data = df.reset_index(drop=True)
-        print(feats)
-        print(self.data)
-        self.feats = feats
-        if "inventor_list" in feats:
-            i = feats.index("inventor_list")
-            feats.pop(i)
-            for j in range(10): feats.append(f"inventor_{j}")
-        self.label_map = {"REJECTED": 0, "ACCEPTED": 1}
-        self.data["decision"] = self.data["decision"].apply(lambda x: self.label_map[x])
+    def __init__(self) -> None:
+        super(ClaimsFeatures, self).__init__()
+        self.data = json.load(open())
 
 class CategFeatures(Dataset):
     """Dataset class to handle no-text or feature only data
@@ -158,63 +197,9 @@ class CategFeatures(Dataset):
 
         return [torch.as_tensor(feats), torch.as_tensor(self.data["decision"][i])]
 
-def common_member(a, b):
-    a_set = set(a)
-    b_set = set(b)
- 
-    if (a_set & b_set):
-        return a_set & b_set
-
-    else:
-        print("No common elements")
-        return {}
-
-class ClaimsMaskedDataset(Dataset):
-    """Custom PyTorch Dataset class. Maps the claims of each patent application to the corresponding extracted keyphrases and masks the the top n% most relevant keyphrases from the claims and return them.
-    """
-    def __init__(self, keyphrases_dir: str, claims_path: str, mask_ratio: float = 0.2) -> None:
-        """Accepts as input the path to the directories containing the keyphrases and the path to claims json file.
-
-        Args:
-            keyphrases_dir (str): path to the directories containing the keyphrases
-            claims_dir (str): path to claims json file
-            mask_ratio (float, optional): Ratio of generated keyphrases to be masked in input. Defaults to 0.2.
-        """        
-        super().__init__()
-        self.keyphrases_dir = keyphrases_dir
-        self.claims_path = claims_path
-        self.claims_dict = json.load(open(self.claims_path))
-        self.patent_id_keyphrase_path = {}
-        for keyphrase_filepath in glob(os.path.join(self.keyphrases_dir, "*.jsonl")):
-            _, patent_id = os.path.basename(keyphrase_filepath)[:-6].split('_')
-            self.patent_id_keyphrase_path[patent_id] = keyphrase_filepath
-        self.patent_ids = list(self.claims_dict.keys())
-
-
-    def __len__(self):
-        return len(self.patent_ids)
-
-    def __getitem__(self, index):
-        patent_id = self.patent_ids[index]
-        data = {"claims": self.claims_dict[patent_id], "original_claims_text": self.claims_dict[patent_id]}
-        breakpoint()
-        if patent_id not in self.patent_id_keyphrase_path:
-            return data
-        keyphrases = json.load(open(self.patent_id_keyphrase_path[patent_id]))
-        claims_keyphrases, claims_relevance = keyphrases['claims'][0], keyphrases['claims'][1]
-        if len(claims_keyphrases) == 0:
-            return data
-        sorted_indices = np.argsort(np.array(claims_relevance))[::-1]
-        claims_relevance = claims_relevance[sorted_indices]
-        claims_keyphrases = claims_keyphrases[sorted_indices]
-        breakpoint()
-        return ""
-
 # main function.
 if __name__ == "__main__":
-    # data = read_patent_splits("../data/patent_acceptance_pred_subs=0.2.jsonl")
-    # all_claims = []
-    # for i in tqdm(range(len(data[0]))):
-    #     all_claims.append(parse_claims(data[0]["claims"][i]))
-    ds = ClaimsMaskedDataset("/home/sohamdit/10701-files/10701/data/keyphrases/", "/home/arnaik/ml_project/data/train_claims.json")
-    print(ds.__getitem__(1))
+    data = read_patent_splits("../data/patent_acceptance_pred_subs=0.2.jsonl")
+    all_claims = []
+    for i in tqdm(range(len(data[0]))):
+        all_claims.append(parse_claims(data[0]["claims"][i]))

@@ -135,3 +135,6 @@ src/plots/*
 src/results/*
 wandb/
 *.pt
+keyphrases
+keyphrases2
+data/
